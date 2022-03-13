@@ -1,5 +1,12 @@
+"""
+Main ETL Pipeline.
+Contains all tasks to retrieve data from the source and load it into the DWH.
+"""
+
+
 import os
 import logging 
+import zipfile
 
 # airflow 
 from airflow import DAG
@@ -21,15 +28,21 @@ PROJECT_ID =  os.environ.get("GCP_PROJECT_ID")
 BUCKET =  os.environ.get("GCP_GCS_BUCKET")
 
 # dataset 
-dataset_file = "bixiTrips2020.zip"
+dataset_zip = "bixiTrips2020.zip"
+dataset_file = 'OD_2020.csv'
+stations_file = 'stations.csv'
 dataset_url = 'https://sitewebbixi.s3.amazonaws.com/uploads/docs/biximontrealrentals2020-8e67d9.zip'
-parquet_file = dataset_file.replace('.csv','.parquet')
+parquet_file = dataset_zip.replace('.csv','.parquet')
 
 # Store env variables (from docker container) locally 
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BQ_DATASET = os.environ.get("BQ_DATASET", "bixi_trips_data")
 
-# currently not in use
+def unzip_data(zip):
+    with zipfile.ZipFile(zip, "r") as zf:
+        zf.extractall(path_to_local_home, [dataset_file, stations_file])
+
+
 def format_to_parquet(src_file):
     """Converts a CSV input into a parquet file"""
     if not src_file.endswith('.csv'):
@@ -76,25 +89,33 @@ with DAG(
 
     download_dataset_task = BashOperator(
         task_id="download_dataset_task",
-        bash_command=f"curl -sS {dataset_url} > {path_to_local_home}/{dataset_file}"
+        bash_command=f"curl -sS {dataset_url} > {path_to_local_home}/{dataset_zip}"
     )
 
-    # going to come back to this as well as a csv-to-parquet task when I figure it out/next time I work on this
-    '''
-    unzip_dataset_task = BashOperator(
+    unzip_data_task = PythonOperator(
         task_id="unzip_data_task",
-        bash_command=f"unzip {path_to_local_home}/{dataset_file} -d"
+        python_callable=unzip_data,
+        op_kwargs={
+            "zip": f"{path_to_local_home}/{dataset_zip}",
+        },
     )
-    '''
+
+    format_trips_to_parquet_task = PythonOperator(
+        task_id="format_trips_to_parquet_task",
+        python_callable=format_to_parquet,
+        op_kwargs={
+            "src_file": f"{path_to_local_home}/{dataset_file}",
+        },
+    )
 
     local_to_gcs_task = PythonOperator(
         task_id="local_to_gcs_task",
         python_callable=upload_to_gcs,
         op_kwargs={
             "bucket": BUCKET,
-            "object_name": f"raw/{dataset_file}",
-            "local_file": f"{path_to_local_home}/{dataset_file}",
+            "object_name": f"raw/{parquet_file}",
+            "local_file": f"{path_to_local_home}/{parquet_file}",
         },
     )
 
-    download_dataset_task >> local_to_gcs_task
+    download_dataset_task >> unzip_data_task >> format_trips_to_parquet_task >> local_to_gcs_task
