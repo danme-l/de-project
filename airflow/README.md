@@ -7,10 +7,11 @@ I'm using the official Docker setup with some slight modifications courtesy of t
 I currently have two DAGS in here. *data_ingestion_gcs_dag.py* is the main one that handles the data from 2018, 2019 and 2020, and I'll possibly be adding the other years as well soon in the coming days. *data_ingestion_gcs_2020_dag.py* was the original test DAG to make sure I could get everything going and handles only 2020 data. 
 
 Both are structured the exact same way:
-**download_dataset_task >> unzip_data_task >> format_trips_to_parquet_task >> local_to_gcs_task**
+**download_dataset_task >> unzip_data_task >> [format_trips_to_parquet_task >>] local_to_gcs_task**
 1. Compressed data is retrieved from the source using *cURL* in a BashOperator
 2. Data is unzipped into the airflow home directory, /opt/airflow in the airflow worker docker container
-3. All the data is reformatted to parquet. This isn't strictly necessary since I'm working with under 1GB of data at the moment but I figure it's good practice for larger datasets
+3. EDIT: I'm currently not working with parquet as I'm having a little bit of trouble using the format. I'm going to complete the project barebones with CSV first.
+ --- All the data is reformatted to parquet. This isn't strictly necessary since I'm working with under 1GB of data at the moment but I figure it's good practice for larger datasets
 4. Uploaded to Google Cloud Storage as Parquet files
 
 ### Docs for various links and notes

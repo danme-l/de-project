@@ -38,6 +38,7 @@ def unzip_data(zip):
     with zipfile.ZipFile(zip, "r") as zf:
         zf.extractall(path_to_local_home)
 
+# currently not working with parquet files
 def format_to_parquet(src_dir, year):
     """Converts a CSV files from a given directory, for a specific year, into a parquet file"""
     for file in os.listdir(src_dir):
@@ -70,7 +71,7 @@ def upload_to_gcs(bucket, local_dir):
 
     # upload every .parquet file in the local directory
     for file in os.listdir(local_dir):
-        if file.endswith(".parquet"):
+        if file.endswith(".csv"):
             blob = bucket.blob(f"raw/{file}")
             blob.upload_from_filename(file)
 
@@ -105,14 +106,16 @@ with DAG(
             },
         )
 
-        format_trips_to_parquet_task = PythonOperator(
-            task_id=f"format_{year}trips_to_parquet_task",
-            python_callable=format_to_parquet,
-            op_kwargs={
-                "src_dir": f"{path_to_local_home}",
-                "year": year,
-            },
-        )
+        ## FOR THE MOMENT
+        # I'm sticking to CSV as it's a little easier to work with
+        # format_trips_to_parquet_task = PythonOperator(
+        #     task_id=f"format_{year}trips_to_parquet_task",
+        #     python_callable=format_to_parquet,
+        #     op_kwargs={
+        #         "src_dir": f"{path_to_local_home}",
+        #         "year": year,
+        #     },
+        # )
 
         local_to_gcs_task = PythonOperator(
             task_id=f"{year}data_to_gcs_task",
@@ -123,4 +126,4 @@ with DAG(
             },
         )
 
-        download_dataset_task >> unzip_data_task >> format_trips_to_parquet_task >> local_to_gcs_task
+        download_dataset_task >> unzip_data_task >>  local_to_gcs_task

@@ -18,8 +18,9 @@ The dataset I'm going to use the [trip data from Montreal's Bixi Bike system](ht
 
 # Current Status 
 ## *Just Finished*:
-Airflow Pipeline to extract data for 2020 and upload it to to Cloud Storage
+Small sample data warehouse for testing and exploring with only the 2020 data has been set up.
 
 ## *Next on the docket*:
-* Add earlier years
-* Set up the Data Warehouse
+* Set up dbt
+* Expand the data warehouse
+* Make an Airflow pipeline for GCS -> Bigquery 
