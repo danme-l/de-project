@@ -8,4 +8,7 @@
 **plugins/
 **.env
 
+**.ipynb_checkpoints
+**.ipynb 
+
 **.csv

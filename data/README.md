@@ -1,5 +1,7 @@
 ### Data
-fetchData.sh is a bash script to download and unzip the files from [the source](https://bixi.com/en/open-data). Some are in subdirectoriess and some aren't. 
+**fetchData.sh**
+
+Bash script to download and unzip the files from [the source](https://bixi.com/en/open-data). Some are in subdirectoriess and some aren't. 
 
 The trips data is structured as follows:
 | start_date       | start_station_code | end_date         | end_station_code | duration_sec | is_member |
@@ -18,3 +20,16 @@ And the station data:
 | 6214 | Square St-Louis          | 45.51735          | -73.56906          |
 
 These examples are both taken from the 2014 data.
+
+**combine_upload_stations.py**
+
+Python script to combine the stations data using pandas. It assumes that all stations with the same code are close enough to be considered the same station, when the station has moved a little bit over the years. For example, when the stations data was put together, this is station 4001:
+| code | name                     | latitude          | longitude          |
+|------|--------------------------|-------------------|--------------------|
+| 4001 | Graham / Brookfield      | 45.520222         | -73.629856         |
+| 4001 | Parc Plage               | 45.50262          | -73.527750         |
+| 4001 | Graham / Brookfield      | 45.520075         | -73.629776         |
+
+I consider these a single station for the purposes of this project and just went with the first one that was found. 
+
+After combining the data, the script uploads it to google cloud storage. I'm hoping to incorporate this functionality into the airflow pipeline.
